@@ -2,13 +2,14 @@ package wsclient
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
-	"github.com/gorilla/websocket"
 	"github.com/project-flogo/core/action"
 	"github.com/project-flogo/core/data/metadata"
 	"github.com/project-flogo/core/support/log"
 	"github.com/project-flogo/core/trigger"
+	"github.com/sacOO7/gowebsocket"
 )
 
 var triggerMd = trigger.NewMetadata(&Settings{}, &Output{})
@@ -29,10 +30,14 @@ func (*Factory) Metadata() *trigger.Metadata {
 // Trigger trigger struct
 type Trigger struct {
 	runner   action.Runner
-	wsconn   *websocket.Conn
+	socket   gowebsocket.Socket
 	settings *Settings
 	logger   log.Logger
 	config   *trigger.Config
+}
+
+type sub struct {
+	Subscribe string `json:"subscribe"`
 }
 
 // New implements trigger.Factory.New
@@ -66,36 +71,50 @@ func (t *Trigger) Initialize(ctx trigger.InitContext) error {
 
 	url := urlSetting.(string)
 	subPath := subPathSetting.(string)
-	token := tokenSetting.(string)
+	token := "Token " + tokenSetting.(string)
 	t.logger.Infof("dialing websocket endpoint[%s]...", url)
 	t.logger.Infof("subscribing to path: [%s]", subPath)
 	t.logger.Infof("authorization token: [%s]", token)
 
-	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
-	if err != nil {
-		return fmt.Errorf("error while connecting to websocket endpoint[%s] - %s", url, err)
-	}
-	t.wsconn = conn
-	go func() {
-		for {
-			_, message, err := t.wsconn.ReadMessage()
-			t.logger.Infof("Message received :", string(message))
-			if err != nil {
-				t.logger.Errorf("error while reading websocket message: %s", err)
-				break
-			}
+	socket := gowebsocket.New(url)
+	socket.RequestHeader.Set("Authorization", token)
 
-			for _, handler := range ctx.GetHandlers() {
-				out := &Output{}
-				out.Content = message
-				_, err := handler.Handle(context.Background(), out)
-				if err != nil {
-					t.logger.Errorf("Run action  failed [%s] ", err)
-				}
+	socket.OnConnectError = func(err error, socket gowebsocket.Socket) {
+		t.logger.Errorf("Received websocket connect error")
+	}
+
+	socket.OnConnected = func(socket gowebsocket.Socket) {
+		// Subscribe to locations for clients on a map
+		subReq := &sub{
+			Subscribe: subPath}
+
+		jsonSubReq, _ := json.Marshal(subReq)
+
+		socket.SendText(string(jsonSubReq))
+	}
+
+	socket.OnTextMessage = func(message string, socket gowebsocket.Socket) {
+
+		t.logger.Infof("Received message: [%s]", message)
+
+		for _, handler := range ctx.GetHandlers() {
+			out := &Output{}
+			out.Content = message
+			_, err := handler.Handle(context.Background(), out)
+			if err != nil {
+				t.logger.Errorf("Run action  failed [%s] ", err)
 			}
 		}
-		t.logger.Infof("stopped listening to websocket endpoint")
-	}()
+	}
+
+	socket.OnDisconnected = func(err error, socket gowebsocket.Socket) {
+		t.logger.Infof("Disconnected from server: [%s]", "error")
+		return
+	}
+
+	socket.Connect()
+	t.socket = socket
+
 	return nil
 }
 
@@ -106,6 +125,6 @@ func (t *Trigger) Start() error {
 
 // Stop stops the trigger
 func (t *Trigger) Stop() error {
-	t.wsconn.Close()
+	t.socket.Close()
 	return nil
 }
