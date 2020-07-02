@@ -1,0 +1,28 @@
+{
+  "name": "wsclient",
+  "type": "flogo:trigger",
+  "version": "0.0.1",
+  "title": "Websocket Client",
+  "description": "Websocket client connects to a websocket server",
+  "ref":"github.com/magallardo/wsclient/trigger/wsclient",
+  "homepage": "https://github.com/magallardo/wsclient/tree/master/trigger/wsclient",
+  "settings": [
+    {
+      "name": "url",
+      "type": "string",
+      "required": true,
+      "description": "The websocket url to connect to."
+    }
+  ],
+  "output": [
+    {
+      "name": "content",
+      "type": "any",
+      "description": "Websocket request payload"
+    }
+  ],
+  "reply": [],
+  "handler": {
+    "settings": []
+  }
+}
