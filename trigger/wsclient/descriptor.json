@@ -12,6 +12,18 @@
       "type": "string",
       "required": true,
       "description": "The websocket url to connect to."
+    },
+    {
+      "name": "subPath",
+      "type": "string",
+      "required": true,
+      "description": "The websocket subscription path."
+    },
+    {
+      "name": "token",
+      "type": "string",
+      "required": true,
+      "description": "The websocket authorization token"
     }
   ],
   "output": [

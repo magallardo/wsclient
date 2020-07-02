@@ -54,8 +54,23 @@ func (t *Trigger) Initialize(ctx trigger.InitContext) error {
 		return fmt.Errorf("server url not provided")
 	}
 
+	subPathSetting := t.config.Settings["subPath"]
+	if subPathSetting == nil || subPathSetting.(string) == "" {
+		return fmt.Errorf("subscription path not provided")
+	}
+
+	tokenSetting := t.config.Settings["token"]
+	if tokenSetting == nil || tokenSetting.(string) == "" {
+		return fmt.Errorf("authorization token not provided")
+	}
+
 	url := urlSetting.(string)
+	subPath := subPathSetting.(string)
+	token := tokenSetting.(string)
 	t.logger.Infof("dialing websocket endpoint[%s]...", url)
+	t.logger.Infof("subscribing to path: [%s]", subPath)
+	t.logger.Infof("authorization token: [%s]", token)
+
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return fmt.Errorf("error while connecting to websocket endpoint[%s] - %s", url, err)

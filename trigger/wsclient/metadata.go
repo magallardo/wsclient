@@ -2,7 +2,9 @@ package wsclient
 
 // Settings for the websocket client trigger
 type Settings struct {
-	URL string `md:"url,required"`
+	URL     string `md:"url,required"`
+	SubPath string `md:"subPath,required"`
+	Token   string `md:"token,required"`
 }
 
 // Output is the outputs for the websocket trigger
