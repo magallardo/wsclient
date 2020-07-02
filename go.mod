@@ -1,4 +1,4 @@
-module github.com/project-flogo/websocket
+module github.com/magallardo/wsclient
 
 require (
 	github.com/gorilla/websocket v1.4.2 // indirect
